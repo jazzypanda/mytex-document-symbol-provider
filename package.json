@@ -1,0 +1,84 @@
+{
+  "name": "mytex-document-symbol-provider",
+  "displayName": "mytex-document-symbol-provider",
+  "description": "Provides document symbol support for .mytex files.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.103.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:mytex"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "mytex",
+        "aliases": [
+          "My TeX",
+          "mytex"
+        ],
+        "extensions": [
+          ".mytex"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "mytex.setApiKey",
+        "title": "MyTeX: Set LLM API Key"
+      },
+      {
+        "command": "mytex.clearApiKey",
+        "title": "MyTeX: Clear LLM API Key"
+      }
+    ],
+    "configuration": {
+      "title": "MyTeX LLM Configuration",
+      "properties": {
+        "mytex.llm.apiEndpoint": {
+          "type": "string",
+          "default": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+          "description": "The API endpoint for the OpenAI-compatible LLM service."
+        },
+        "mytex.llm.model": {
+          "type": "string",
+          "default": "glm-4.5-air",
+          "description": "The model name to use for summarization."
+        },
+        "mytex.llm.prompt": {
+        "type": "string",
+        "default": "You are a highly skilled assistant specialized in summarizing academic texts. I will provide you with the full text of an introduction section and the number of paragraphs it contains. Your task is to return a JSON array where each element is a concise summary (under 15 words) for the corresponding paragraph. Do not include any explanations or introductory text outside of the JSON array. The full text has {{numparagraphs}} paragraphs.\n\nFull Text:\n\"\"\"\n{{fulltext}}\n\"\"\"",
+        "markdownDescription": "The Mustache template for the prompt. \n\nAvailable variables: \n- `{{fulltext}}`: The entire text of the document. \n- `{{numparagraphs}}`: The number of paragraphs detected.",
+        "editPresentation": "multilineText"
+      }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@types/vscode": "^1.103.0",
+    "@typescript-eslint/eslint-plugin": "^8.39.0",
+    "@typescript-eslint/parser": "^8.39.0",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.32.0",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "axios": "^1.11.0"
+  }
+}
