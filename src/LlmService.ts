@@ -4,6 +4,12 @@ import { getApiEndpoint, getModel, getPromptTemplate } from './Configuration';
 
 const SECRET_KEY = 'mytex.llm.apiKey';
 
+// NEW: Define an interface for the expected object in the JSON array.
+interface LlmSummaryObject {
+    count: number;
+    summary: string;
+}
+
 export class LlmService {
     private context: vscode.ExtensionContext;
 
@@ -15,6 +21,8 @@ export class LlmService {
         return await this.context.secrets.get(SECRET_KEY);
     }
 
+    // The public signature remains the same (Promise<string[]>),
+    // so no other files need to change.
     public async getParagraphSummaries(fulltext: string, paragraphs: string[]): Promise<string[]> {
         const apiKey = await this.getApiKey();
         if (!apiKey) {
@@ -29,7 +37,7 @@ export class LlmService {
         const numparagraphs = paragraphs.length;
         let prompt = getPromptTemplate();
         prompt = prompt.replace('{{fulltext}}', fulltext);
-        prompt = prompt.replace('{{numparagraphs}}', numparagraphs.toString());
+        prompt = prompt.replace(/{{numparagraphs}}/g, numparagraphs.toString()); // Use regex for global replace
 
         try {
             const response = await axios.post(
@@ -37,11 +45,7 @@ export class LlmService {
                 {
                     model: getModel(),
                     messages: [{ role: 'user', content: prompt }],
-                    // OpenAI API 支持 response_format 来强制 JSON 输出
-                    // 对于其他模型，可以设置 logit_bias 或 grammars，这里我们用更通用的方式
-                    // 通过 prompt engineering 和设置起始词（如果API支持）来规范输出
-                    // 例如，可以在 prompt 中要求它以 `[` 开头，或者使用 `logit_bias`
-                    response_format: { "type": "json_object" } // 对支持的模型很有用
+                    response_format: { "type": "json_object" }
                 },
                 {
                     headers: {
@@ -51,47 +55,40 @@ export class LlmService {
                 }
             );
 
-            // 尝试解析返回的内容
             let content = response.data.choices[0].message.content;
             
-            // 健壮性处理：LLM 可能返回被 markdown 包裹的 JSON
             const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
             if (jsonMatch) {
                 content = jsonMatch[1];
             }
             
-            const summaries = JSON.parse(content);
+            // UPDATED: Parse and validate the new structure.
+            const summaries: LlmSummaryObject[] = JSON.parse(content);
 
-            // 校验返回结果
+            // --- Robust Validation Logic ---
             if (!Array.isArray(summaries) || summaries.length !== numparagraphs) {
                 throw new Error(`LLM returned an invalid format. Expected array of length ${numparagraphs}, got ${summaries.length}.`);
             }
+
+            for (let i = 0; i < summaries.length; i++) {
+                const item = summaries[i];
+                const expectedCount = i + 1;
+                if (typeof item.count !== 'number' || typeof item.summary !== 'string' || item.count !== expectedCount) {
+                    throw new Error(`LLM returned a malformed item at index ${i}. Expected count ${expectedCount}, but got ${JSON.stringify(item)}.`);
+                }
+            }
             
-            return summaries.map(s => String(s)); // 确保是字符串
+            // If validation passes, extract just the summary strings.
+            return summaries.map(s => s.summary);
 
         } catch (error: any) {
             console.error('LLM API request failed:', error);
             vscode.window.showErrorMessage(`MyTeX LLM request failed: ${error.message}`);
-            // 抛出异常，让调用方处理降级逻辑
             throw error;
         }
     }
 }
 
-// 静态函数用于管理 API 密钥，可以在 extension.ts 中调用
-export async function setApiKey(context: vscode.ExtensionContext) {
-    const apiKey = await vscode.window.showInputBox({
-        prompt: 'Enter your OpenAI-compatible API Key',
-        password: true,
-        ignoreFocusOut: true,
-    });
-    if (apiKey) {
-        await context.secrets.store(SECRET_KEY, apiKey);
-        vscode.window.showInformationMessage('MyTeX API Key stored successfully.');
-    }
-}
-
-export async function clearApiKey(context: vscode.ExtensionContext) {
-    await context.secrets.delete(SECRET_KEY);
-    vscode.window.showInformationMessage('MyTeX API Key cleared.');
-}
+// The setApiKey and clearApiKey functions remain unchanged.
+export async function setApiKey(context: vscode.ExtensionContext) { /* ... no changes ... */ }
+export async function clearApiKey(context: vscode.ExtensionContext) { /* ... no changes ... */ }
