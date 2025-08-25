@@ -30,21 +30,3 @@ Full Text:
 """`;
     return getConfig().get('prompt') || defaultPrompt;
 }
-
-// NEW: Functions to manage the API Key, previously in LlmService.
-export async function setApiKey(context: vscode.ExtensionContext) {
-    const apiKey = await vscode.window.showInputBox({
-        prompt: 'Enter your MyTeX LLM API Key',
-        password: true,
-        ignoreFocusOut: true,
-    });
-    if (apiKey) {
-        await context.secrets.store('mytex.llm.apiKey', apiKey);
-        vscode.window.showInformationMessage('MyTeX LLM API Key has been set.');
-    }
-}
-
-export async function clearApiKey(context: vscode.ExtensionContext) {
-    await context.secrets.delete('mytex.llm.apiKey');
-    vscode.window.showInformationMessage('MyTeX LLM API Key has been cleared.');
-}

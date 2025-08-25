@@ -35,6 +35,11 @@
       {
         "command": "mytex.clearApiKey",
         "title": "MyTeX: Clear LLM API Key"
+      },
+      {
+        "command": "mytex.showStructurePanel",
+        "title": "MyTeX: Show Structure Panel",
+        "category": "MyTeX"
       }
     ],
     "configuration": {

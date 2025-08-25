@@ -2,19 +2,14 @@ import * as vscode from 'vscode';
 import axios from 'axios';
 import { Paragraph } from '../core/types';
 import { getApiEndpoint, getModel, getPromptTemplate, LlmSummaryObject } from '../utils/Configuration';
-
-const SECRET_KEY = 'mytex.llm.apiKey';
+import { SecretManager } from '../core/SecretManager';
 
 export class LlmController {
 
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(private secretManager: SecretManager) {
         console.log('[LLM Controller] Initialized.');
     }
     
-    private async getApiKey(): Promise<string | undefined> {
-        return await this.context.secrets.get(SECRET_KEY);
-    }
-
     /**
      * 接受段落数组和全文，为需要总结的段落触发LLM工作流
      * @param paragraphs 需要处理的段落
@@ -24,7 +19,7 @@ export class LlmController {
     public async summarizeParagraphs(paragraphs: Paragraph[], fullText: string): Promise<Map<string, string>> {
         console.log(`[LLM Controller] Received ${paragraphs.length} paragraphs to summarize.`);
         
-        const apiKey = await this.getApiKey();
+        const apiKey = await this.secretManager.getApiKey();
         if (!apiKey) {
             vscode.window.showWarningMessage('MyTeX LLM API Key is not set. Please use the "MyTeX: Set LLM API Key" command.', 'Set Key').then(selection => {
                 if (selection === 'Set Key') {

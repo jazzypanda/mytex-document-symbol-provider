@@ -1,0 +1,42 @@
+body {
+    font-family: var(--vscode-font-family);
+    color: var(--vscode-editor-foreground);
+    background-color: var(--vscode-editor-background);
+    padding: 10px;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.paragraph-item {
+    border: 1px solid var(--vscode-editorWidget-border);
+    border-radius: 4px;
+    padding: 8px;
+    background-color: var(--vscode-sideBar-background);
+}
+
+.paragraph-summary {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.paragraph-text {
+    font-size: 0.9em;
+    opacity: 0.8;
+    white-space: pre-wrap; /* Preserve whitespace and wrap text */
+}
+
+.state-summarizing {
+    opacity: 0.6;
+}
+
+.state-failed {
+    border-left: 3px solid var(--vscode-errorForeground);
+}
+
+.state-success {
+     border-left: 3px solid var(--vscode-debugIcon-startForeground);
+}
