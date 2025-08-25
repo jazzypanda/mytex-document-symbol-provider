@@ -1,46 +1,46 @@
 import * as vscode from 'vscode';
-import { MytexDocumentSymbolProvider } from './MytexDocumentSymbolProvider';
-import { setApiKey, clearApiKey } from './LlmService';
-import { SymbolStateService } from './SymbolStateService';
+import { ParsingEngine } from './engine/ParsingEngine';
+import { LlmController } from './llm/LlmController';
+import { DocumentManager } from './core/DocumentManager';
+import { MytexDocumentSymbolProvider } from './providers/MytexDocumentSymbolProvider';
+import { setApiKey, clearApiKey } from './utils/Configuration';
 
 export function activate(context: vscode.ExtensionContext) {
-    console.log('Congratulations, your extension "mytex-document-symbol-provider" is now active!');
+    console.log('Congratulations, your extension "mytex" is now active with the new architecture!');
 
-    // 1. 创建状态服务的单例
-    const symbolStateService = new SymbolStateService(context);
+    // 1. 初始化核心服务
+    const parsingEngine = new ParsingEngine();
+    const llmController = new LlmController(context);
+    const documentManager = new DocumentManager(parsingEngine, llmController);
 
-    // 2. 将服务实例注入到 Provider 中
+    // 2. 初始化Provider
+    const symbolProvider = new MytexDocumentSymbolProvider(documentManager);
+
+    // 3. 注册Provider
     context.subscriptions.push(
         vscode.languages.registerDocumentSymbolProvider(
             { language: 'mytex' },
-            new MytexDocumentSymbolProvider(symbolStateService)
+            symbolProvider
         )
     );
 
-    // 3. 注册用于设置密钥的公共命令
+    // 4. 注册一个内部命令，用于连接Manager和Provider
+    context.subscriptions.push(
+        vscode.commands.registerCommand('mytex.internal.refreshSymbols', () => {
+            symbolProvider.forceRefresh();
+        })
+    );
+
+    // 5. 注册用户可见的公共命令
     context.subscriptions.push(
         vscode.commands.registerCommand('mytex.setApiKey', () => setApiKey(context)),
         vscode.commands.registerCommand('mytex.clearApiKey', () => clearApiKey(context))
     );
 
-    // 4. 注册用于触发UI刷新的内部命令
-    context.subscriptions.push(
-        vscode.commands.registerCommand('mytex.internal.refreshSymbols', async (uri: vscode.Uri) => {
-            // 找到对应的文本文档
-            const document = vscode.workspace.textDocuments.find(doc => doc.uri.toString() === uri.toString());
-            if (!document) return;
+    // 6. 注册Manager以便资源清理
+    context.subscriptions.push(documentManager);
 
-            // 创建一个无操作的编辑来触发 VS Code 刷新符号
-            const edit = new vscode.WorkspaceEdit();
-            const position = new vscode.Position(0, 0);
-            edit.insert(document.uri, position, ' ');
-            await vscode.workspace.applyEdit(edit);
-            
-            const deleteEdit = new vscode.WorkspaceEdit();
-            deleteEdit.delete(document.uri, new vscode.Range(position, new vscode.Position(0, 1)));
-            await vscode.workspace.applyEdit(deleteEdit);
-        })
-    );
+    console.log('MyTeX Symbol Provider has been registered.');
 }
 
 export function deactivate() {}
